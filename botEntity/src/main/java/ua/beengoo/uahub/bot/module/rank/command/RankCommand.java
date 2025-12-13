@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.Role;
 import ua.beengoo.uahub.bot.ContextHolder;
 import ua.beengoo.uahub.bot.Lang;
 import ua.beengoo.uahub.bot.helper.paginator.ButtonPaginator;
+import ua.beengoo.uahub.bot.helper.paginator.Buttons;
 import ua.beengoo.uahub.bot.layout.message.Embed;
 import ua.beengoo.uahub.bot.module.identity.service.ServerMemberController;
 import ua.beengoo.uahub.bot.module.permissions.service.PermissionService;
@@ -142,7 +143,7 @@ public class RankCommand {
                 s.retrieveOriginal()
                     .queue(
                         sentMsg ->
-                            new ButtonPaginator(pages, event.getUser(), false)
+                            new ButtonPaginator(pages, event.getUser(), false, List.of(Buttons.PREVIOUS, Buttons.NEXT))
                                 .paginate(sentMsg, event.getJDA())));
   }
 

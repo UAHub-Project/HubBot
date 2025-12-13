@@ -101,7 +101,7 @@ public class PlaylistService {
       arr.get(i).setPosition(i);
     }
     trackRepo.saveAll(arr);
-    pl.setTracks(new java.util.LinkedHashSet<>(arr));
+    pl.setTracks(new ArrayList<>(arr));
     return playlistRepo.save(pl);
   }
 }

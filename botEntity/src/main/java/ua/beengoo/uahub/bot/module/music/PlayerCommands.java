@@ -21,6 +21,8 @@ import dev.lavalink.youtube.clients.AndroidMusic;
 import dev.lavalink.youtube.clients.MWeb;
 import dev.lavalink.youtube.clients.WebEmbedded;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +37,7 @@ import ua.beengoo.uahub.bot.Lang;
 import ua.beengoo.uahub.bot.StringUtils;
 import ua.beengoo.uahub.bot.helper.paginator.ButtonPaginator;
 import ua.beengoo.uahub.bot.layout.message.Embed;
+import ua.beengoo.uahub.bot.module.music.model.UserPlaylist;
 import ua.beengoo.uahub.bot.module.music.model.UserPlaylistTrack;
 import ua.beengoo.uahub.bot.module.music.player.*;
 import ua.beengoo.uahub.bot.module.music.service.MusicService;
@@ -99,24 +102,25 @@ public class PlayerCommands {
     // Try to resolve as a user playlist first (exact name match)
     boolean handledAsPlaylist = false;
     try {
-      var pl = playlistService.get(event.getUser().getIdLong(), url);
-      java.util.List<String> queries =
-          pl.getTracks().stream().map(UserPlaylistTrack::getQuery).toList();
-      musicService.playPlaylist(event.getGuild(), m, queries);
-      handledAsPlaylist = true;
-      event
-          .jdaEvent()
-          .replyEmbeds(
-              Embed.getInfo()
-                  .setTitle(Lang.get("music.playlist.title"))
-                  .setDescription(
-                      "Adding a playlist: %s (%s)"
-                          .formatted(pl.getName(), pl.getTracks().size())) // TODO: Lang
-                  .build())
-          .setEphemeral(true)
-          .queue();
-    } catch (IllegalArgumentException ignore) {
-    }
+        UserPlaylist pl = playlistService.get(event.getUser().getIdLong(), url);
+        List<String> queries = pl.getTracks().stream()
+            .map(UserPlaylistTrack::getQuery)
+            .toList();
+
+        musicService.playPlaylist(event.getGuild(), m, queries);
+        handledAsPlaylist = true;
+        event
+            .jdaEvent()
+            .replyEmbeds(
+                  Embed.getInfo()
+                      .setTitle(Lang.get("music.playlist.title"))
+                    .setDescription(
+                          "Adding a user playlist: %s (%s)"
+                              .formatted(pl.getName(), pl.getTracks().size())) // TODO: Lang
+                    .build())
+            .setEphemeral(true)
+            .queue();
+    } catch (IllegalArgumentException ignore) {}
 
     if (!handledAsPlaylist) {
       // Preload to detect duplicates for single track or YT/SC playlist
@@ -163,16 +167,7 @@ public class PlayerCommands {
         String title = first.getInfo() != null ? first.getInfo().title : null;
         String author = first.getInfo() != null ? first.getInfo().author : null;
         var eb = Embed.getInfo().setTitle(Lang.get("music.player.title"));
-        // Thumbnail for YouTube
-        try {
-          String src =
-              first.getSourceManager() != null ? first.getSourceManager().getSourceName() : null;
-          String id = first.getIdentifier();
-          if (src != null && src.equalsIgnoreCase("youtube") && id != null && !id.isBlank()) {
-            eb.setThumbnail("https://img.youtube.com/vi/" + id + "/hqdefault.jpg");
-          }
-        } catch (Throwable ignored) {
-        }
+        eb.setThumbnail(Utils.getArtwork(first));
         String displayAuthor = author != null && !author.isBlank() ? author : "?";
         String displayTitle = title != null && !title.isBlank() ? title : url;
         event
@@ -738,34 +733,17 @@ public class PlayerCommands {
     } catch (Throwable ignored) {
     }
 
-    EmbedBuilder eb = Embed.getInfo().setTitle("Панель керування плеєром");
-    PlayerMode mode = PlayerController.getInstance().getPlayerMode();
-    boolean paused = PlayerController.getInstance().isPaused();
-    AudioTrack now = PlayerController.getInstance().getNowPlayingTrack();
-    String np =
-        (now == null)
-            ? Lang.get("music.nothing_playing")
-            : "**%s — %s** (%s)"
-                .formatted(now.getInfo().author, now.getInfo().title, fmtTime(now.getDuration()));
-    eb.setDescription(
-        """
-                Зараз: %s
-                Режим: %s
-                Стан: %s
-                """
-            .formatted(np, mode, paused ? "Пауза" : "Грає"));
-
     event
         .jdaEvent()
-        .replyEmbeds(eb.build())
+        .reply("Please, wait")
         .setEphemeral(false)
-        .setComponents(PlayerControlPanel.buildRows(paused, mode))
         .queue(
             hook ->
                 hook.retrieveOriginal()
                     .queue(
                         msg -> {
                           PlayerControlPanel.bindActive(msg, event.getJDA());
+                          PlayerControlPanel.getInstance().refreshSilently();
                         }));
   }
 

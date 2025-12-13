@@ -3,6 +3,7 @@ package ua.beengoo.uahub.bot.module.music.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +62,7 @@ class PlaylistServiceTest {
   @DisplayName("addTrack: throws when at limit 256")
   void addTrackLimit() {
     UserPlaylist pl = new UserPlaylist();
-    pl.setTracks(new LinkedHashSet<>());
+    pl.setTracks(new ArrayList<>());
     for (int i = 0; i < 256; i++) {
       UserPlaylistTrack t = new UserPlaylistTrack();
       t.setPosition(i);
@@ -76,7 +77,7 @@ class PlaylistServiceTest {
   @DisplayName("addTrack: throws on duplicate by query (case-insensitive)")
   void addTrackDuplicate() {
     UserPlaylist pl = new UserPlaylist();
-    pl.setTracks(new LinkedHashSet<>());
+    pl.setTracks(new ArrayList<>());
     UserPlaylistTrack t = new UserPlaylistTrack();
     t.setPosition(0);
     t.setQuery("https://x/y");
@@ -91,7 +92,7 @@ class PlaylistServiceTest {
   @DisplayName("addTrack: saves track with next position")
   void addTrackSaves() {
     UserPlaylist pl = new UserPlaylist();
-    pl.setTracks(new LinkedHashSet<>());
+    pl.setTracks(new ArrayList<>());
     when(playlistRepo.findByOwnerDiscordIdAndNameIgnoreCase(USER, "L")).thenReturn(Optional.of(pl));
     when(trackRepo.save(any(UserPlaylistTrack.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -108,7 +109,7 @@ class PlaylistServiceTest {
   @SuppressWarnings("unchecked")
   void removeTrackRepack() {
     UserPlaylist pl = new UserPlaylist();
-    pl.setTracks(new LinkedHashSet<>());
+    pl.setTracks(new ArrayList<>());
     for (int i = 0; i < 3; i++) {
       UserPlaylistTrack t = new UserPlaylistTrack();
       t.setPosition(i);

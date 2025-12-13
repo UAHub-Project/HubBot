@@ -4,6 +4,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import java.util.ArrayList;
 import java.util.List;
 import net.dv8tion.jda.api.managers.AudioManager;
+import ua.beengoo.uahub.bot.HubBot;
 
 /** Facade over {@link PlayerInstance} that exposes player controls to commands and UI. */
 public class PlayerController {
@@ -19,7 +20,7 @@ public class PlayerController {
   }
 
   private PlayerController() {
-    playerInstance = new PlayerInstance(this);
+    playerInstance = new PlayerInstance(this, HubBot.getConfig());
   }
 
   /** Registers a listener for player events. */
@@ -50,8 +51,8 @@ public class PlayerController {
   }
 
   /** Loads a track or playlist by query and queues it. */
-  public void requestToQueue(String query) {
-    playerInstance.loadTrack(query);
+  public void requestToQueue(List<String> query) {
+    playerInstance.loadPlaylistSequentially(query);
   }
 
   /** Starts or continues playback from the current index. */

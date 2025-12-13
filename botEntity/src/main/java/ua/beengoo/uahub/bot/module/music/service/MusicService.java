@@ -43,22 +43,22 @@ public class MusicService {
       setOwner = true;
     }
     runtimeListener.setLastRequester(requester);
-    PlayerController.getInstance().requestToQueue(query);
+    PlayerController.getInstance().requestToQueue(List.of(query));
     if (setOwner) applySavedSettings(requester.getIdLong());
   }
 
   /** Add a playlist (already materialized to queries) to queue. */
   public void playPlaylist(Guild guild, Member requester, List<String> queries) {
-    if (guild == null || requester == null || requester.getVoiceState() == null) return;
-    connect(guild, requester.getVoiceState().getChannel());
-    boolean setOwner = false;
-    if (PlayerAccess.getOwnerId() == null) {
-      PlayerAccess.setOwnerId(requester.getIdLong());
-      setOwner = true;
-    }
-    runtimeListener.setLastRequester(requester);
-    for (String q : queries) PlayerController.getInstance().requestToQueue(q);
-    if (setOwner) applySavedSettings(requester.getIdLong());
+      if (guild == null || requester == null || requester.getVoiceState() == null) return;
+      connect(guild, requester.getVoiceState().getChannel());
+      boolean setOwner = false;
+      if (PlayerAccess.getOwnerId() == null) {
+          PlayerAccess.setOwnerId(requester.getIdLong());
+          setOwner = true;
+      }
+      runtimeListener.setLastRequester(requester);
+      PlayerController.getInstance().requestToQueue(queries);
+      if (setOwner) applySavedSettings(requester.getIdLong());
   }
 
   private void applySavedSettings(long discordId) {
@@ -92,7 +92,7 @@ public class MusicService {
 
   /**
    * Returns a future that completes when the next queue addition (track or playlist) happens for
-   * the given requester. Useful for commands that want to display metadata of what was queued.
+   * the given requester
    */
   public java.util.concurrent.CompletableFuture<QueueAddInfo> awaitQueueAddFor(long requesterId) {
     java.util.concurrent.CompletableFuture<QueueAddInfo> fut =
@@ -224,8 +224,6 @@ public class MusicService {
         com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
 
     @Override
-    public void onQueueFinished(com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
-      PlayerAccess.clearOwner();
-    }
+    public void onQueueFinished(com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
   }
 }

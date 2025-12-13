@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.stream.Collectors;
+import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Message;
@@ -43,6 +45,12 @@ public class PlayerControlPanel implements PlayerInstanceListener {
   private static final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor();
   private ScheduledFuture<?> closeTask;
+  @Getter
+  private static PlayerControlPanel instance;
+
+  private PlayerControlPanel() {
+      instance = this;
+  }
 
   /** Binds this control panel to a posted message and starts listening to button interactions. */
   public static void bindActive(Message msg, JDA jda) {
@@ -100,18 +108,17 @@ public class PlayerControlPanel implements PlayerInstanceListener {
         Button.danger("pl.bye", Lang.get("music.ctrl.bye")));
   }
 
-  /** Wraps buttons into up to two rows. */
-  public static List<ActionRow> buildRows(boolean paused, PlayerMode mode) {
-    var buttons = buildButtonsComponents(paused, mode);
-    if (buttons.size() <= 5) {
-      return List.of(ActionRow.of(buttons));
-    } else {
-      return List.of(
-          ActionRow.of(buttons.subList(0, 5)), ActionRow.of(buttons.subList(5, buttons.size())));
+    /** Wraps buttons into up to two rows. */
+    public static List<ActionRow> buildRows(boolean paused, PlayerMode mode) {
+        var buttons = buildButtonsComponents(paused, mode);
+        if (buttons.size() <= 5) {
+          return List.of(ActionRow.of(buttons));
+        } else {
+          return List.of(
+              ActionRow.of(buttons.subList(0, 5)), ActionRow.of(buttons.subList(5, buttons.size())));
+        }
     }
-  }
-
-  private final ListenerAdapter listener =
+    private final ListenerAdapter listener =
       new ListenerAdapter() {
         @Override
         public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
@@ -409,9 +416,11 @@ public class PlayerControlPanel implements PlayerInstanceListener {
         return;
       }
     }
-    String title = Lang.get("music.vote.title");
-    String desc = Lang.get("music.vote.desc").formatted(actionKey);
-    VoteManager.startVote(event, event.getMember(), ch, actionKey, title, desc, onSuccess);
+    if (ch.getMembers().stream().filter(m -> !m.getUser().isBot()).collect(Collectors.toList()).size() >= 2) {
+        String title = Lang.get("music.vote.title");
+        String desc = Lang.get("music.vote.desc").formatted(actionKey);
+        VoteManager.startVote(event, event.getMember(), ch, actionKey, title, desc, onSuccess);
+    }
   }
 
   private boolean bypassVoting_removed(ButtonInteractionEvent event) {
@@ -447,6 +456,7 @@ public class PlayerControlPanel implements PlayerInstanceListener {
                 (pc.isPaused()
                     ? Lang.get("music.ctrl.state.paused")
                     : Lang.get("music.ctrl.state.playing"))));
+    eb.setThumbnail(Utils.getArtwork(now));
     return eb.build();
   }
 
@@ -459,13 +469,13 @@ public class PlayerControlPanel implements PlayerInstanceListener {
     return String.format("%d:%02d", m, s);
   }
 
-  private void refreshSilently() {
+  public void refreshSilently() {
     try {
       if (message == null) return;
       boolean paused = PlayerController.getInstance().isPaused();
       PlayerMode mode = PlayerController.getInstance().getPlayerMode();
       MessageEmbed updated = buildStateEmbed();
-      message.editMessageEmbeds(updated).setComponents(buildRows(paused, mode)).queue();
+      message.editMessageEmbeds(updated).setComponents(buildRows(paused, mode)).setContent("").queue();
     } catch (Throwable ignored) {
     }
   }
@@ -564,7 +574,6 @@ public class PlayerControlPanel implements PlayerInstanceListener {
 
   @Override
   public void onQueueFinished(com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
-    // Disable controls and show finished state
     try {
       if (message != null) {
         EmbedBuilder eb = Embed.getInfo().setTitle("Панель керування плеєром");
@@ -579,14 +588,14 @@ public class PlayerControlPanel implements PlayerInstanceListener {
       }
     } catch (Throwable ignored) {
     }
-    try {
-      if (jda != null) jda.removeEventListener(listener);
-    } catch (Throwable ignored) {
-    }
-    try {
-      PlayerController.getInstance().removeListener(this);
-    } catch (Throwable ignored) {
-    }
-    active = null;
+//     try {
+//       if (jda != null) jda.removeEventListener(listener);
+//     } catch (Throwable ignored) {
+//     }
+//     try {
+//       PlayerController.getInstance().removeListener(this);
+//     } catch (Throwable ignored) {
+//     }
+//     active = null;
   }
 }

@@ -2,7 +2,9 @@ package ua.beengoo.uahub.bot.module.music.model;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
@@ -44,5 +46,5 @@ public class UserPlaylist {
   @OrderBy("position ASC")
   @Getter
   @Setter
-  private Set<UserPlaylistTrack> tracks = new LinkedHashSet<>();
+  private List<UserPlaylistTrack> tracks = new ArrayList<>();
 }
