@@ -35,15 +35,24 @@ public class HubBot {
    * @param args standard program arguments
    */
   public static void main(String[] args) {
-    switch (args[0]) {
-        case "--utility" -> {
-            switch (args[1]) {
-                case "yto-helper": YoutubeOAuthHelper.main(args);
-            }
-        }
-        case "--help" -> printHelp();
-        default -> initMain(args);
-    }
+      if (args.length > 0) {
+          switch (args[0]) {
+              case "--utility" -> {
+                  switch (args[1]) {
+                      case "yto-helper": YoutubeOAuthHelper.main(args);
+                      case "list": System.out.println("""
+                          Utilities:
+                            - yto-helper - Script to help fetch auth tokens from google account to bypass most youtube restrictions
+                          """);;
+                      default: printHelp();
+                  }
+              }
+              case "--help" -> printHelp();
+              default -> initMain(args);
+          }
+      } else {
+          initMain(args);
+      }
   }
 
     private static void printHelp() {
