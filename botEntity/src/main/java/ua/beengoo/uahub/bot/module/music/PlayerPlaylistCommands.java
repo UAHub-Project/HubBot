@@ -56,7 +56,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** Create a playlist for the current user. */
-  @Command(value = "player playlist create", desc = "Створити плейлист")
+  @Command(value = "playlist create", desc = "Створити плейлист")
   public void onCreate(CommandEvent event, @Param(name = "name", value = "Назва") String name) {
     if (!has(event, "music.pl.create", "music.perm.pl.create")) return;
     try {
@@ -84,7 +84,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** Add a track by query/URL to a playlist. */
-  @Command(value = "player playlist add", desc = "Додати трек у плейлист")
+  @Command(value = "playlist add", desc = "Додати трек у плейлист")
   public void onAdd(
       CommandEvent event,
       @Param(name = "name", value = "Назва") String name,
@@ -135,7 +135,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** Remove a track at a 1-based position from a playlist. */
-  @Command(value = "player playlist remove", desc = "Видалити трек з плейлисту")
+  @Command(value = "playlist remove", desc = "Видалити трек з плейлисту")
   public void onRemove(
       CommandEvent event,
       @Param(name = "name", value = "Назва") String name,
@@ -182,7 +182,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** Delete a playlist. */
-  @Command(value = "player playlist delete", desc = "Видалити плейлист")
+  @Command(value = "playlist delete", desc = "Видалити плейлист")
   public void onDelete(CommandEvent event, @Param(name = "name", value = "Назва") String name) {
     if (!has(event, "music.pl.delete", "music.perm.pl.delete")) return;
     try {
@@ -210,7 +210,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** List user playlists ordered by name. */
-  @Command(value = "player playlist list", desc = "Список плейлистів")
+  @Command(value = "playlist list", desc = "Список плейлистів")
   public void onList(CommandEvent event) {
     if (!has(event, "music.pl.list", "music.perm.pl.list")) return;
     List<UserPlaylist> pls = playlistService.list(event.getUser().getIdLong());
@@ -242,7 +242,7 @@ public class PlayerPlaylistCommands {
   }
 
   /** View playlist contents with pagination. */
-  @Command(value = "player playlist view", desc = "Переглянути вміст плейлисту")
+  @Command(value = "playlist view", desc = "Переглянути вміст плейлисту")
   public void onView(
       CommandEvent event, @Param(name = "name", value = "Назва плейлисту") String name) {
     if (!has(event, "music.pl.view", "music.perm.pl.view")) return;
@@ -313,42 +313,14 @@ public class PlayerPlaylistCommands {
                                 .paginate(sentMsg, event.getJDA())));
   }
 
-  /** Play all tracks from a user playlist. */
-  @Command(value = "player playlist play", desc = "Відтворити ваш плейлист")
-  public void onPlaylistPlay(
-      CommandEvent event, @Param(name = "name", value = "Назва плейлисту") String name) {
-    if (!has(event, "music.pl.play", "music.perm.pl.play")) return;
-    Member m = event.getMember();
-    if (m == null || m.getVoiceState() == null || m.getVoiceState().getChannel() == null) {
-      event.reply(Embed.getError().setTitle("Ви не підключені до голосового каналу."));
-      return;
-    }
-    UserPlaylist pl;
-    try {
-      pl = playlistService.get(event.getUser().getIdLong(), name);
-    } catch (IllegalArgumentException ex) {
-      event.reply(
-          Embed.getError().setTitle("Плейлист").setDescription("Не знайдено: %s".formatted(name)));
-      return;
-    }
-
-    java.util.List<String> queries = pl.getTracks().stream().map(t -> t.getQuery()).toList();
-    musicService.playPlaylist(event.getGuild(), m, queries);
-    event.reply(
-        Embed.getInfo()
-            .setTitle("Плейлист")
-            .setDescription(
-                "Додаю плейлист: %s (%s треків)".formatted(pl.getName(), pl.getTracks().size())));
-  }
-
   @AutoComplete(
-      value = {"player playlist play", "player playlist view"},
+      value = {"playlist view"},
       options = "name")
   public void onPlaylistPlayAuto(AutoCompleteEvent event) {
     String typed = event.jdaEvent().getFocusedOption().getValue();
     var playlists = playlistService.list(event.getUser().getIdLong());
-    java.util.List<net.dv8tion.jda.api.interactions.commands.Command.Choice> choices =
-        new java.util.ArrayList<>();
+    List<net.dv8tion.jda.api.interactions.commands.Command.Choice> choices =
+        new ArrayList<>();
     for (var pl : playlists) {
       String nm = pl.getName();
       if (typed == null || typed.isBlank() || nm.toLowerCase().contains(typed.toLowerCase())) {
@@ -363,7 +335,7 @@ public class PlayerPlaylistCommands {
 
   // Listener moved to MusicService; keep commands lean
 
-  @Command(value = "player playlist save", desc = "Зберегти поточну чергу як плейлист")
+  @Command(value = "playlist save", desc = "Зберегти поточну чергу як плейлист")
   public void onSaveFromQueue(
       CommandEvent event, @Param(name = "name", value = "Назва") String name) {
     if (!has(event, "music.pl.save", "music.perm.pl.save")) return;

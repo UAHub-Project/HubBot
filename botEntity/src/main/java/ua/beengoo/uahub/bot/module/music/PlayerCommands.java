@@ -20,6 +20,7 @@ import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.clients.AndroidMusic;
 import dev.lavalink.youtube.clients.MWeb;
 import dev.lavalink.youtube.clients.WebEmbedded;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -79,11 +80,11 @@ public class PlayerCommands {
     return allowed;
   }
 
-  /** /player play — queue a track or playlist via URL or search query. */
-  @Command(value = "player play", desc = "Відтворити трек або плейлист за URL/пошуком")
+  /** /play — queue a track or playlist via URL */
+  @Command(value = "play", desc = "Відтворити трек або плейлист за URL")
   public void onPlay(
       CommandEvent event,
-      @Param(name = "url", value = "URL/пошук або назва плейлисту") String url) {
+      @Param(name = "url", value = "URL або назва плейлисту") String url) {
     if (!has(event, "music.play", "music.perm.play")) return;
     Member m = event.getMember();
     if (!isInVoice(m)) {
@@ -107,7 +108,7 @@ public class PlayerCommands {
             .map(UserPlaylistTrack::getQuery)
             .toList();
 
-        musicService.playPlaylist(event.getGuild(), m, queries);
+        musicService.playPlaylist(event.getGuild(), m, queries, false);
         handledAsPlaylist = true;
         event
             .jdaEvent()
@@ -115,8 +116,8 @@ public class PlayerCommands {
                   Embed.getInfo()
                       .setTitle(Lang.get("music.playlist.title"))
                     .setDescription(
-                          "Adding a user playlist: %s (%s)"
-                              .formatted(pl.getName(), pl.getTracks().size())) // TODO: Lang
+                        Lang.get("music.playlist.user.added")
+                              .formatted(pl.getName(), pl.getTracks().size()))
                     .build())
             .setEphemeral(true)
             .queue();
@@ -239,7 +240,7 @@ public class PlayerCommands {
     }
   }
 
-  @AutoComplete(value = {"player play"})
+  @AutoComplete(value = {"play"})
   public void onPlayAuto(AutoCompleteEvent event) {
     String typed = event.jdaEvent().getFocusedOption().getValue();
     java.util.List<net.dv8tion.jda.api.interactions.commands.Command.Choice> choices =
@@ -262,7 +263,7 @@ public class PlayerCommands {
   }
 
   /** Toggle pause/resume. */
-  @Command(value = "player pause", desc = "Пауза/продовжити відтворення")
+  @Command(value = "pause", desc = "Пауза/продовжити відтворення")
   public void onPause(CommandEvent event) {
     if (!has(event, "music.pause", "music.perm.pause")) return;
     Member m = event.getMember();
@@ -291,7 +292,7 @@ public class PlayerCommands {
   }
 
   /** Shows the current queue with pagination. */
-  @Command(value = "player queue", desc = "Показати чергу відтворення")
+  @Command(value = "queue", desc = "Показати чергу відтворення")
   public void onQueue(CommandEvent event) {
     if (!has(event, "music.queue", "music.perm.queue")) return;
     List<AudioTrackMeta> tracks = PlayerController.getInstance().getTracks();
@@ -352,56 +353,55 @@ public class PlayerCommands {
   }
 
   /** Stops player and leaves voice. */
-  @Command(value = "player bye", desc = "Зупинити плеєр і вийти")
+  @Command(value = "stop", desc = "Зупинити плеєр і вийти")
   public void onBye(CommandEvent event) {
-    if (!has(event, "music.bye", "music.perm.bye")) return;
-    Member m = event.getMember();
-    if (!isInVoice(m)) {
+      // No bye:(
+      if (!has(event, "music.bye", "music.perm.bye")) return;
+      Member m = event.getMember();
+      if (!isInVoice(m)) {
+        event
+            .jdaEvent()
+            .replyEmbeds(Embed.getError().setTitle(Lang.get("music.error.not_in_voice")).build())
+            .setEphemeral(true)
+            .queue();
+        return;
+      }
+      Long ownerIdForStop = PlayerAccess.getOwnerId();
+      boolean requireStop =
+          ownerIdForStop != null
+              && ContextHolder.getBean(MusicSettingsService.class)
+              .getRequiredVoteActions(ownerIdForStop)
+              .contains("stop");
+      if (!PlayerAccess.isOwner(event.getUser().getIdLong()) && requireStop) {
+        var ch = m.getVoiceState().getChannel();
+        VoteManager.startVote(
+            event.jdaEvent(), m, ch,
+          "stop",
+            Lang.get("music.vote.title"),
+            Lang.get("music.vote.desc").formatted("stop"),
+            () -> {
+                PlayerController.getInstance().clean();
+                if (event.getGuild() != null) event.getGuild().getAudioManager().closeAudioConnection();
+                PlayerAccess.clearOwner();
+            });
+        return;
+      }
+      PlayerController.getInstance().clean();
+      if (event.getGuild() != null) event.getGuild().getAudioManager().closeAudioConnection();
       event
           .jdaEvent()
-          .replyEmbeds(Embed.getError().setTitle(Lang.get("music.error.not_in_voice")).build())
+          .replyEmbeds(
+              Embed.getInfo()
+                  .setTitle(Lang.get("music.player.title"))
+                  .setDescription(Lang.get("music.bye.stopped"))
+                  .build())
           .setEphemeral(true)
           .queue();
-      return;
-    }
-    Long ownerIdForStop = PlayerAccess.getOwnerId();
-    boolean requireStop =
-        ownerIdForStop != null
-            && ContextHolder.getBean(MusicSettingsService.class)
-                .getRequiredVoteActions(ownerIdForStop)
-                .contains("stop");
-    if (!PlayerAccess.isOwner(event.getUser().getIdLong()) && requireStop) {
-      var ch = m.getVoiceState().getChannel();
-      VoteManager.startVote(
-          event.jdaEvent(),
-          m,
-          ch,
-          "stop",
-          Lang.get("music.vote.title"),
-          Lang.get("music.vote.desc").formatted("stop"),
-          () -> {
-            PlayerController.getInstance().clean();
-            if (event.getGuild() != null) event.getGuild().getAudioManager().closeAudioConnection();
-            PlayerAccess.clearOwner();
-          });
-      return;
-    }
-    PlayerController.getInstance().clean();
-    if (event.getGuild() != null) event.getGuild().getAudioManager().closeAudioConnection();
-    event
-        .jdaEvent()
-        .replyEmbeds(
-            Embed.getInfo()
-                .setTitle(Lang.get("music.player.title"))
-                .setDescription(Lang.get("music.bye.stopped"))
-                .build())
-        .setEphemeral(true)
-        .queue();
-    PlayerAccess.clearOwner();
+      PlayerAccess.clearOwner();
   }
 
   /** Skips current track (removes from queue). */
-  @Command(value = "player skip", desc = "Пропустити поточний трек")
+  @Command(value = "skip", desc = "Пропустити поточний трек")
   public void onSkip(CommandEvent event) {
     if (!has(event, "music.skip", "music.perm.skip")) return;
     Member m = event.getMember();
@@ -456,7 +456,7 @@ public class PlayerCommands {
   }
 
   /** Plays the next track without removing current from queue. */
-  @Command(value = "player next", desc = "Відтворити наступний трек (без видалення з черги)")
+  @Command(value = "next", desc = "Відтворити наступний трек (без видалення з черги)")
   public void onNext(CommandEvent event) {
     if (!has(event, "music.next", "music.perm.next")) return;
     Member m = event.getMember();
@@ -522,7 +522,7 @@ public class PlayerCommands {
         .queue();
   }
 
-  @Command(value = "player prev", desc = "Відтворити попередній трек")
+  @Command(value = "prev", desc = "Відтворити попередній трек")
   public void onPrev(CommandEvent event) {
     if (!has(event, "music.prev", "music.perm.prev")) return;
     Member m = event.getMember();
@@ -576,7 +576,7 @@ public class PlayerCommands {
         .queue();
   }
 
-  @Command(value = "player jump", desc = "Відтворити трек за позицією у черзі")
+  @Command(value = "jump", desc = "Відтворити трек за позицією у черзі")
   public void onJump(
       CommandEvent event,
       @Param(name = "index", value = "Позиція у черзі (1..n)") String indexStr) {
@@ -663,7 +663,7 @@ public class PlayerCommands {
         .queue();
   }
 
-  @AutoComplete(value = {"player jump"})
+  @AutoComplete(value = {"jump"})
   public void onJumpAuto(AutoCompleteEvent event) {
     var tracks = PlayerController.getInstance().getTracks();
     java.util.List<net.dv8tion.jda.api.interactions.commands.Command.Choice> choices =
@@ -683,7 +683,7 @@ public class PlayerCommands {
     event.replyChoices(choices);
   }
 
-  @Command(value = "player np", desc = "Що зараз грає")
+  @Command(value = "np", desc = "Що зараз грає")
   public void onNowPlaying(CommandEvent event) {
     if (!has(event, "music.np", "music.perm.np")) return;
     AudioTrack now = PlayerController.getInstance().getNowPlayingTrack();
@@ -710,7 +710,7 @@ public class PlayerCommands {
                             : "?")));
   }
 
-  @Command(value = "player ctrl", desc = "Панель керування плеєром")
+  @Command(value = "ctrl", desc = "Панель керування плеєром")
   public void onCtrl(CommandEvent event) {
     // Allow open if user is session owner or has any control permission
     if (!PlayerAccess.canControl(event)) {
@@ -849,9 +849,9 @@ public class PlayerCommands {
             }
           });
       latch.await(
-          java.time.Duration.ofSeconds(3).toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+          Duration.ofSeconds(3).toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
       var list = tracks.get();
-      if (list == null || list.isEmpty()) return null; // no preview -> don't block
+      if (list == null || list.isEmpty()) return null;
       return new Preview(isPl.get(), list);
     } catch (Throwable ignored) {
       return null;

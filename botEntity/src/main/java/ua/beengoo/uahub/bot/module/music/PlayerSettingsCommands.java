@@ -12,6 +12,7 @@ import ua.beengoo.uahub.bot.module.music.player.PlayerController;
 import ua.beengoo.uahub.bot.module.music.player.PlayerMode;
 import ua.beengoo.uahub.bot.module.music.player.PlayerTextUtil;
 import ua.beengoo.uahub.bot.module.music.service.MusicSettingsService;
+import java.util.Optional;
 
 @Interaction
 public class PlayerSettingsCommands {
@@ -22,11 +23,40 @@ public class PlayerSettingsCommands {
     this.settingsService = ContextHolder.getBean(MusicSettingsService.class);
   }
 
-  @Command(value = "player settings repeat", desc = "Встановити і зберегти режим повторення")
+  @Command(value = "settings player repeat", desc = "Встановити і зберегти режим повторення")
   public void onSettingsRepeat(
       CommandEvent event,
-      @Choices({"single", "queue", "nothing"}) @Param(name = "mode", value = "Режим") String mode) {
+      @Choices({"single", "queue", "nothing"}) @Param(name = "mode", optional = true, value = "Режим") String mode) {
     long uid = event.getUser().getIdLong();
+    if (mode == null) {
+        Optional<PlayerMode> userMode = settingsService.getSavedRepeatMode(uid);
+        if (userMode.isPresent()) {
+            event
+                .jdaEvent()
+                .replyEmbeds(
+                    Embed.getInfo()
+                        .setTitle(Lang.get("music.mode.title"))
+                        .setDescription(
+                            "Your current repeat mode is: %s".formatted(userMode.get())
+                        )
+                        .build())
+                .setEphemeral(true)
+                .queue();
+        } else {
+            event
+                .jdaEvent()
+                .replyEmbeds(
+                    Embed.getWarn()
+                        .setTitle(Lang.get("music.mode.title"))
+                        .setDescription(
+                            "Hmm, looks like you not configuring your player settings."
+                        )
+                        .build())
+                .setEphemeral(true)
+                .queue();
+        }
+        return;
+    }
     var setTo =
         switch (mode) {
           case "single" -> PlayerMode.REPEAT_ONE;
@@ -47,7 +77,7 @@ public class PlayerSettingsCommands {
         .queue();
   }
 
-  @Command(value = "player settings vote", desc = "Переглянути/налаштувати голосування для дій")
+  @Command(value = "settings player vote", desc = "Переглянути/налаштувати голосування для дій")
   public void onSettingsVote(
       CommandEvent event,
       @Choices({"pause", "next", "prev", "skip", "mode", "stop", "jump"})

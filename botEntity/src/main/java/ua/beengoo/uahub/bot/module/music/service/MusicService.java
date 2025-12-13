@@ -48,7 +48,7 @@ public class MusicService {
   }
 
   /** Add a playlist (already materialized to queries) to queue. */
-  public void playPlaylist(Guild guild, Member requester, List<String> queries) {
+  public void playPlaylist(Guild guild, Member requester, List<String> queries, boolean replace) {
       if (guild == null || requester == null || requester.getVoiceState() == null) return;
       connect(guild, requester.getVoiceState().getChannel());
       boolean setOwner = false;
@@ -57,7 +57,13 @@ public class MusicService {
           setOwner = true;
       }
       runtimeListener.setLastRequester(requester);
-      PlayerController.getInstance().requestToQueue(queries);
+      if (replace) {
+          PlayerController.getInstance().clean();
+          PlayerController.getInstance().requestToQueue(queries);
+          PlayerController.getInstance().playNext();
+      } else {
+          PlayerController.getInstance().requestToQueue(queries);
+      }
       if (setOwner) applySavedSettings(requester.getIdLong());
   }
 
