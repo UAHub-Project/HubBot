@@ -20,11 +20,6 @@ import ua.beengoo.uahub.bot.config.ConfigurationFileCtrl;
 @EnableScheduling
 public class HubBot {
 
-  // The reason why I did it like that because Spring Boot need to be initialized after
-  // configuration workaround.
-  // And also, I don't want users to change some spring boot parameters without forking project, and
-  // edit it IN code
-  // so this config.json also "safest" way to make configuration without potential risks.
   @Getter
   private static final ConfigurationFile config =
       new ConfigurationFileCtrl("config.json").loadOrCreateDefault();
