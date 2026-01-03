@@ -16,9 +16,9 @@ You need Java 17 or above to build project
 # Clone repository
 git clone https://github.com/UAHub-Project/HubBot.git
 cd HubBot/
-# For Linux allow to execute wrapper
+
 chmod +x ./gradlew
-# Build bot using wrapper
+
 ./gradlew botEntity:shadowJar
 # Then check botEntity/build/libs folder there should be a jar file
 ls botEntity/build/libs
