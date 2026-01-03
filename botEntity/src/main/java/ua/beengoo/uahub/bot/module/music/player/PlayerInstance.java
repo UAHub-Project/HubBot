@@ -160,10 +160,10 @@ public class PlayerInstance extends ListenerAdapter {
 
     /** Sets repeat mode and notifies listeners. */
     public void setPlayerMode(PlayerMode playerMode) {
+        this.playerMode = playerMode;
         playerController
             .getListeners()
             .forEach(l -> l.onPlayerModeChanged(getPlayerMode(), playerMode, getPlayer()));
-        this.playerMode = playerMode;
     }
 
     /** Loads a track or playlist from a query/URL and emits appropriate callbacks. */
