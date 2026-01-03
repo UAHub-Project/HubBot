@@ -41,7 +41,7 @@ public class PlayerController {
   List<PlayerInstanceListener> getListeners() {
     // Return a defensive copy to avoid ConcurrentModificationException if listeners mutate inside
     // callbacks
-    return new java.util.ArrayList<>(listeners);
+    return new ArrayList<>(listeners);
   }
 
   /** Prepares audio handlers and self-deafens the bot. */
@@ -83,6 +83,11 @@ public class PlayerController {
   /** True if any track is currently playing. */
   public boolean isPlaying() {
     return playerInstance.isPlaying();
+  }
+
+  public void shiftPlayer(int shift) {
+      long current = playerInstance.getPlayer().getPlayingTrack().getPosition();
+      playerInstance.getPlayer().getPlayingTrack().setPosition(current+shift);
   }
 
   /** Adds a single track meta to the queue. */

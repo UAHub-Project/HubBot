@@ -106,6 +106,8 @@ public class PlayerControlPanel implements PlayerInstanceListener {
         Button.primary("pl.skip", Lang.get("music.ctrl.skip")),
         Button.primary("pl.queue", Lang.get("music.ctrl.queue")),
         Button.primary("pl.mode", modeLabel),
+        Button.primary("pl.-10", Lang.get("music.ctrl.shiftn10")),
+        Button.primary("pl.+10", Lang.get("music.ctrl.shiftp10")),
         Button.primary("pl.jump", Lang.get("music.ctrl.jump")),
         Button.danger("pl.bye", Lang.get("music.ctrl.bye")));
   }
@@ -272,7 +274,7 @@ public class PlayerControlPanel implements PlayerInstanceListener {
                 menuBuilder.addOption(label, String.valueOf(i));
               }
               event.replyComponents(ActionRow.of(menuBuilder.build())).setEphemeral(true).queue();
-              return; // no UI refresh
+              return;
             }
             case "pl.mode" -> {
               PlayerMode mode = PlayerController.getInstance().getPlayerMode();
@@ -291,7 +293,8 @@ public class PlayerControlPanel implements PlayerInstanceListener {
               }
               PlayerController.getInstance().setPlayerMode(next);
             }
-              // removed confusing save button
+            case "pl.+10" -> PlayerController.getInstance().shiftPlayer(10*1000);
+            case "pl.-10" -> PlayerController.getInstance().shiftPlayer(-(10*1000));
             case "pl.bye" -> {
               if (!isOwner) {
                 startVote(
@@ -492,7 +495,7 @@ public class PlayerControlPanel implements PlayerInstanceListener {
         EmbedBuilder eb = Embed.getInfo().setTitle("Панель керування плеєром");
         eb.setDescription(Lang.get("music.ctrl.closed"));
         var rows = buildRows(false, PlayerMode.NOTHING);
-        var disabledRows = new java.util.ArrayList<ActionRow>();
+        var disabledRows = new ArrayList<ActionRow>();
         for (ActionRow row : rows) {
           disabledRows.add(
               ActionRow.of(row.getButtons().stream().map(b -> b.withDisabled(true)).toList()));
@@ -515,73 +518,68 @@ public class PlayerControlPanel implements PlayerInstanceListener {
   // PlayerInstanceListener implementations to keep panel in sync
   @Override
   public void onTrackPlaying(
-      AudioTrackMeta track, com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+      AudioTrackMeta track, AudioPlayer player) {
     refreshSilently();
-    touch();
   }
 
   @Override
   public void onTrackEnd(
       AudioTrackMeta track,
       com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason endReason,
-      com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+      AudioPlayer player) {
     refreshSilently();
-    touch();
   }
 
   @Override
-  public void onSearchFailed(com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
+  public void onSearchFailed(AudioPlayer player) {}
 
   @Override
   public void onLoadFailed(
       com.sedmelluq.discord.lavaplayer.tools.FriendlyException e,
-      com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
+      AudioPlayer player) {}
 
   @Override
   public void onPlaylistLoaded(
-      com.sedmelluq.discord.lavaplayer.track.AudioPlaylist playlist,
-      com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+      AudioPlaylist playlist,
+      AudioPlayer player) {
     refreshSilently();
-    touch();
   }
 
   @Override
   public void onTrackQueueAdded(
-      AudioTrackMeta track, com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
+      AudioTrackMeta track, AudioPlayer player) {}
 
   @Override
   public void onPlaylistQueueAdded(
-      AudioPlaylistMeta playlist, com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
+      AudioPlaylistMeta playlist, AudioPlayer player) {}
 
   @Override
   public void onTrackLoaded(
       com.sedmelluq.discord.lavaplayer.track.AudioTrack track,
-      com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {}
+      AudioPlayer player) {}
 
   @Override
   public void onPlayerModeChanged(
       PlayerMode modeBefore,
       PlayerMode modeAfter,
-      com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+      AudioPlayer player) {
     refreshSilently();
-    touch();
   }
 
   @Override
   public void onTrackSkipped(
-      AudioTrackMeta track, com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+      AudioTrackMeta track, AudioPlayer player) {
     refreshSilently();
-    touch();
   }
 
   @Override
-  public void onQueueFinished(com.sedmelluq.discord.lavaplayer.player.AudioPlayer player) {
+  public void onQueueFinished(AudioPlayer player) {
     try {
       if (message != null) {
         EmbedBuilder eb = Embed.getInfo().setTitle("Панель керування плеєром");
         eb.setDescription(Lang.get("music.queue.finished"));
         var rows = buildRows(false, PlayerMode.NOTHING);
-        var disabledRows = new java.util.ArrayList<ActionRow>();
+        var disabledRows = new ArrayList<ActionRow>();
         for (ActionRow row : rows) {
           disabledRows.add(
               ActionRow.of(row.getButtons().stream().map(b -> b.withDisabled(true)).toList()));
